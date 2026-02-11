@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import CesiumViewer from './cesium/CesiumViewer'
 import Sidebar from './components/Sidebar'
 import { calculateRisk } from './ai/riskEngine'
-import './styles/app.css'
+import './styles/global.css'
 
 export default function App() {
   const [rainfall, setRainfall] = useState(20)
   const [riskScore, setRiskScore] = useState(0)
   const [showTerrain, setShowTerrain] = useState(true)
   const [showFloodZones, setShowFloodZones] = useState(true)
+  const [collapsed, setCollapsed] = useState(false)
 
   // Recalculate risk whenever rainfall changes
   useEffect(() => {
-    const score = calculateRisk(rainfall)
-    setRiskScore(score)
+    setRiskScore(calculateRisk(rainfall))
   }, [rainfall])
 
   return (
     <div className="app-root">
       <Sidebar
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed((c) => !c)}
         rainfall={rainfall}
         setRainfall={setRainfall}
         riskScore={riskScore}
@@ -29,12 +32,32 @@ export default function App() {
       />
 
       <main className="viewer-area">
-        <CesiumViewer
-          rainfall={rainfall}
-          riskScore={riskScore}
-          showTerrain={showTerrain}
-          showFloodZones={showFloodZones}
-        />
+        <section className="map-container">
+          <CesiumViewer
+            rainfall={rainfall}
+            riskScore={riskScore}
+            showTerrain={showTerrain}
+            showFloodZones={showFloodZones}
+          />
+
+          {/* subtle top gradient overlay for depth */}
+          <div className="map-top-gradient" aria-hidden />
+        </section>
+
+        <motion.section
+          className="about-section"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="about-inner">
+            <h2>About RiverTwin AI</h2>
+            <p>
+              A Web-Based Digital Twin for Urban–River Interaction using LiDAR and AI-driven flood risk
+              simulation.
+            </p>
+          </div>
+        </motion.section>
       </main>
     </div>
   )
