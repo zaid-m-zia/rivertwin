@@ -1,0 +1,25 @@
+{
+  "model_type": "RandomForestClassifier",
+  "n_estimators": 200,
+  "max_depth": null,
+  "random_state": 42,
+  "test_accuracy": 1.0,
+  "train_accuracy": 1.0,
+  "feature_names": [
+    "Disaster Type",
+    "Latitude",
+    "Longitude",
+    "Total Deaths",
+    "Total Affected",
+    "duration",
+    "time",
+    "Rainfall",
+    "Elevation",
+    "Slope",
+    "distance"
+  ],
+  "n_features": 11,
+  "training_samples": 4989,
+  "testing_samples": 1248,
+  "target_column": "occured"
+}
