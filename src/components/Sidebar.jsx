@@ -15,17 +15,23 @@ export default function Sidebar({
   showFloodZones,
   setShowFloodZones
 }) {
-  const width = collapsed ? 80 : 320
+  const width = collapsed ? 72 : 320
 
   return (
     <motion.aside
-      className="sidebar"
+      className={`sidebar ${collapsed ? 'collapsed' : ''}`}
       initial={false}
       animate={{ width }}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
+      aria-expanded={!collapsed}
     >
       <div className="sidebar-top">
-        <button className="collapse-btn" onClick={onToggleCollapsed} aria-label="Toggle sidebar">
+        <button
+          className="collapse-btn"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-pressed={collapsed}
+        >
           {collapsed ? '»' : '«'}
         </button>
         {!collapsed && (
@@ -40,7 +46,7 @@ export default function Sidebar({
         )}
       </div>
 
-      <div className="sidebar-content">
+      <div className="sidebar-content" aria-hidden={collapsed}>
         <motion.div whileHover={{ y: -4 }} className="panel">
           <RainfallSlider value={rainfall} onChange={setRainfall} />
         </motion.div>

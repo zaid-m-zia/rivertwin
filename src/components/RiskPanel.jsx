@@ -31,14 +31,14 @@ export default function RiskPanel({ riskScore = 0 }) {
 
   const dashOffset = circumference * (1 - normalized)
 
-  // choose color based on thresholds
-  let color = '#16A34A'
-  if (riskScore >= 70) color = '#DC2626'
-  else if (riskScore >= 40) color = '#F59E0B'
+  // choose color based on thresholds (use strict theme)
+  let color = 'var(--low)'
+  if (riskScore >= 70) color = 'var(--high)'
+  else if (riskScore >= 40) color = 'var(--med)'
 
   return (
     <div className="panel risk-panel">
-      <h3>Flood Risk</h3>
+      <h3 style={{color:'var(--text)'}}>Flood Risk</h3>
       <div className="risk-meter">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <defs>
@@ -51,7 +51,7 @@ export default function RiskPanel({ riskScore = 0 }) {
             </filter>
           </defs>
           <g transform="translate(60,60)">
-            <circle r={radius} fill="none" stroke="#E6EEF9" strokeWidth={stroke} />
+            <circle r={radius} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={stroke} />
             <motion.circle
               r={radius}
               fill="none"
@@ -64,7 +64,7 @@ export default function RiskPanel({ riskScore = 0 }) {
               style={{ filter: 'url(#glow)' }}
               transform="rotate(-90)"
             />
-            <text x="0" y="6" textAnchor="middle" className="risk-number">
+            <text x="0" y="6" textAnchor="middle" className="risk-number" style={{fill:'var(--text)'}}>
               {display}%
             </text>
           </g>

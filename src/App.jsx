@@ -18,7 +18,7 @@ export default function App() {
   }, [rainfall])
 
   return (
-    <div className="app-root">
+    <div className="app-container">
       <Sidebar
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((c) => !c)}
@@ -31,18 +31,20 @@ export default function App() {
         setShowFloodZones={setShowFloodZones}
       />
 
-      <main className="viewer-area">
-        <section className="map-container">
-          <CesiumViewer
-            rainfall={rainfall}
-            riskScore={riskScore}
-            showTerrain={showTerrain}
-            showFloodZones={showFloodZones}
-          />
+      <div className="map-wrapper">
+        <div className="map-panel">
+          <div className="map-container">
+            <CesiumViewer
+              rainfall={rainfall}
+              riskScore={riskScore}
+              showTerrain={showTerrain}
+              showFloodZones={showFloodZones}
+            />
 
-          {/* subtle top gradient overlay for depth */}
-          <div className="map-top-gradient" aria-hidden />
-        </section>
+            {/* subtle top gradient overlay for depth */}
+            <div className="map-top-gradient" aria-hidden />
+          </div>
+        </div>
 
         <motion.section
           className="about-section"
@@ -58,7 +60,7 @@ export default function App() {
             </p>
           </div>
         </motion.section>
-      </main>
+      </div>
     </div>
   )
 }

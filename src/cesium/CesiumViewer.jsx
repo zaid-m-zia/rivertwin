@@ -132,5 +132,15 @@ export default function CesiumViewer({ rainfall, riskScore, showTerrain, showFlo
     // TODO: Replace placeholder flood layer with ArcGIS exported GeoJSON
   }, [rainfall, riskScore])
 
-  return <div ref={containerRef} className="cesium-container" />
+  return (
+    <div ref={containerRef} className="cesium-container">
+      <div className="floating-legend" aria-hidden>
+        <div style={{fontSize:12,fontWeight:600,marginBottom:6,color:'var(--text)'}}>Risk Legend</div>
+        <div className="legend-item"><span className="legend-swatch" style={{background:'var(--low)'}} /> <span style={{color:'var(--text-muted)',fontSize:13}}>Low</span></div>
+        <div className="legend-item"><span className="legend-swatch" style={{background:'var(--med)'}} /> <span style={{color:'var(--text-muted)',fontSize:13}}>Medium</span></div>
+        <div className="legend-item"><span className="legend-swatch" style={{background:'var(--high)'}} /> <span style={{color:'var(--text-muted)',fontSize:13}}>High</span></div>
+      </div>
+    </div>
+  )
 }
+
