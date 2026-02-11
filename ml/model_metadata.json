@@ -3,22 +3,17 @@
   "n_estimators": 200,
   "max_depth": null,
   "random_state": 42,
-  "test_accuracy": 1.0,
-  "train_accuracy": 1.0,
+  "test_accuracy": 0.8453525641025641,
+  "train_accuracy": 0.9977951493285228,
   "feature_names": [
-    "Disaster Type",
-    "Latitude",
-    "Longitude",
-    "Total Deaths",
-    "Total Affected",
-    "duration",
-    "time",
     "Rainfall",
     "Elevation",
     "Slope",
-    "distance"
+    "distance",
+    "Latitude",
+    "Longitude"
   ],
-  "n_features": 11,
+  "n_features": 6,
   "training_samples": 4989,
   "testing_samples": 1248,
   "target_column": "occured"
