@@ -32,6 +32,11 @@ from flask_cors import CORS
 import joblib
 import numpy as np
 import os
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # ============================================================================
 # INITIALIZE FLASK APP & CORS
@@ -217,6 +222,129 @@ def predict():
         print(f"[ERROR] {error_msg}")
         print("-"*80 + "\n")
         return jsonify({"error": error_msg}), 500
+
+
+# ============================================================================
+# ROUTE 4: CHATBOT ENDPOINT (POST /chat)
+# ============================================================================
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    """
+    AI chatbot endpoint using Groq API (LLaMA3).
+    Domain-restricted to flood risk and urban planning topics.
+    
+    Request JSON:
+    {
+        "message": "user question"
+    }
+    
+    Response JSON:
+    {
+        "reply": "assistant response"
+    }
+    """
+    
+    print("\n" + "-"*80)
+    print("[REQUEST] POST /chat - Chatbot request received!")
+    print("-"*80)
+    
+    # Check if GROQ_API_KEY is set
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        error_msg = "Missing GROQ_API_KEY in environment."
+        print(f"[ERROR] {error_msg}")
+        return jsonify({"error": error_msg}), 500
+    
+    try:
+        # Parse incoming message
+        data = request.get_json()
+        print(f"[DEBUG] Incoming message: {data}")
+        
+        if not data or "message" not in data:
+            error_msg = "Missing 'message' field in request"
+            print(f"[ERROR] {error_msg}")
+            return jsonify({"error": error_msg}), 400
+        
+        user_message = data["message"]
+        if not isinstance(user_message, str) or len(user_message) == 0:
+            error_msg = "Message must be a non-empty string"
+            print(f"[ERROR] {error_msg}")
+            return jsonify({"error": error_msg}), 400
+        
+        print(f"[DEBUG] User message: {user_message}")
+        
+        # Prepare Groq API request
+        groq_url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {groq_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        system_prompt = (
+            "You are RiverTwin AI assistant, an expert on flood risk assessment and urban planning near rivers. "
+            "You ONLY answer questions about: flood risk assessment, terrain-based flood vulnerability, "
+            "sustainable urban planning near rivers, long-term flood mitigation strategies, and LiDAR-based analysis. "
+            "If a question is unrelated to these topics, respond: 'I can only assist with flood risk and urban planning topics.'"
+        )
+        
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": user_message
+                }
+            ]
+        }
+        
+        print("[DEBUG] Sending request to Groq API...")
+        
+        # Call Groq API
+        response = requests.post(groq_url, headers=headers, json=payload, timeout=10)
+        
+        if not response.ok:
+            error_msg = f"Groq API error: {response.status_code} - {response.text}"
+            print(f"[ERROR] {error_msg}")
+            return jsonify({"error": f"AI service error: {response.status_code}"}), 500
+        
+        response_data = response.json()
+        print(f"[DEBUG] Groq API response received")
+        
+        # Extract assistant message
+        if "choices" not in response_data or len(response_data["choices"]) == 0:
+            error_msg = "Invalid response from Groq API"
+            print(f"[ERROR] {error_msg}")
+            return jsonify({"error": error_msg}), 500
+        
+        assistant_reply = response_data["choices"][0]["message"]["content"]
+        print(f"[DEBUG] Assistant reply: {assistant_reply}")
+        
+        result = {"reply": assistant_reply}
+        print(f"[SUCCESS] Chat response prepared")
+        print("-"*80 + "\n")
+        
+        return jsonify(result), 200
+        
+    except requests.exceptions.Timeout:
+        error_msg = "Groq API request timeout"
+        print(f"[ERROR] {error_msg}")
+        return jsonify({"error": "Response timeout. Please try again."}), 504
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Request error: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        return jsonify({"error": "Network error. Please try again."}), 500
+        
+    except Exception as e:
+        error_msg = f"Chat error: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        print("-"*80 + "\n")
+        return jsonify({"error": "Chat service error"}), 500
 
 
 # ============================================================================

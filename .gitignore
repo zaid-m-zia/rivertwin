@@ -1,0 +1,78 @@
+# Environment files
+.env
+backend/.env
+
+# Dependency directories
+node_modules/
+dist/
+
+# Python
+venv/
+__pycache__/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/# Environment Variables
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Frontend
+node_modules/
+build/
+.next/
+out/
+dist/
+
+# ML Model (optional - include if large)
+# ml/flood_model.pkl
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.DS_Store
+*.pem
