@@ -1,6 +1,30 @@
 """
-RiverTwin AI - Flood Vulnerability Prediction Backend
-Serves a pre-trained RandomForest model for long-term flood-prone classification
+================================================================================
+  RiverTwin AI - Flood Vulnerability Prediction Backend
+================================================================================
+
+TESTING INSTRUCTIONS:
+
+1. Start the backend:
+   cd backend
+   pip install -r requirements.txt
+   python app.py
+
+2. Test if server is alive (should see JSON response):
+   curl http://127.0.0.1:5000/
+
+3. Test health check:
+   curl http://127.0.0.1:5000/health
+
+4. Test prediction with sample data:
+   curl -X POST http://127.0.0.1:5000/predict \
+     -H "Content-Type: application/json" \
+     -d '{"Rainfall":1200,"Elevation":15,"Slope":2,"distance":0.5,"Latitude":28.6,"Longitude":77.1}'
+
+Expected response:
+   {"prediction": 0 or 1, "probability": 0.XX}
+
+================================================================================
 """
 
 from flask import Flask, request, jsonify
@@ -9,29 +33,82 @@ import joblib
 import numpy as np
 import os
 
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
+# ============================================================================
+# INITIALIZE FLASK APP & CORS
+# ============================================================================
 
-# Load the trained model
+app = Flask(__name__)
+CORS(app)
+
+print("\n" + "="*80)
+print("RIVERTWIN AI - BACKEND INITIALIZING")
+print("="*80 + "\n")
+
+# ============================================================================
+# LOAD MODEL
+# ============================================================================
+
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'ml', 'flood_model.pkl')
+print(f"[INFO] Loading model from: {MODEL_PATH}")
+
 try:
     model = joblib.load(MODEL_PATH)
-    print(f"✓ Model loaded successfully from {MODEL_PATH}")
+    print(f"[SUCCESS] ✓ Model loaded successfully!\n")
 except FileNotFoundError:
-    print(f"✗ Error: Model file not found at {MODEL_PATH}")
+    print(f"[ERROR] ✗ Model file NOT found at: {MODEL_PATH}\n")
+    model = None
+except Exception as e:
+    print(f"[ERROR] ✗ Failed to load model: {str(e)}\n")
     model = None
 
-# Expected features in the same order as training
+# ============================================================================
+# EXPECTED FEATURES (IN CORRECT ORDER)
+# ============================================================================
+
 EXPECTED_FEATURES = ['Rainfall', 'Elevation', 'Slope', 'distance', 'Latitude', 'Longitude']
+print(f"[INFO] Expected features: {EXPECTED_FEATURES}\n")
 
 
-@app.route('/predict', methods=['POST'])
+# ============================================================================
+# ROUTE 1: ROOT ENDPOINT (GET /)
+# ============================================================================
+
+@app.route("/", methods=["GET"])
+def health_check():
+    """
+    Root endpoint - returns backend status info
+    """
+    print("[REQUEST] GET /")
+    return jsonify({"status": "RiverTwin AI Backend Running Successfully"})
+
+
+# ============================================================================
+# ROUTE 2: HEALTH CHECK (GET /health)
+# ============================================================================
+
+@app.route("/health", methods=["GET"])
+def health():
+    """
+    Health check endpoint
+    """
+    print("[REQUEST] GET /health")
+    return jsonify({
+        "status": "healthy",
+        "model_loaded": model is not None,
+        "expected_features": EXPECTED_FEATURES
+    })
+
+
+# ============================================================================
+# ROUTE 3: PREDICT ENDPOINT (POST /predict)
+# ============================================================================
+
+@app.route("/predict", methods=["POST"])
 def predict():
     """
-    Endpoint for flood vulnerability prediction.
+    Flood vulnerability prediction endpoint.
     
-    Accepts POST request with JSON body containing:
+    Expects JSON with 6 features:
     {
         "Rainfall": float,
         "Elevation": float,
@@ -43,95 +120,129 @@ def predict():
     
     Returns:
     {
-        "prediction": 0 (not prone) or 1 (prone),
-        "probability": float between 0 and 1
+        "prediction": 0 (safe) or 1 (flood prone),
+        "probability": probability value
     }
     """
     
-    # Check if model is loaded
+    print("\n" + "-"*80)
+    print("[REQUEST] POST /predict - Request received!")
+    print("-"*80)
+    
+    # ========================================================================
+    # CHECK IF MODEL IS LOADED
+    # ========================================================================
+    
     if model is None:
+        print("[ERROR] Model is not loaded!")
         return jsonify({"error": "Model not loaded"}), 500
     
     try:
-        # Parse JSON request
+        # ====================================================================
+        # PARSE JSON
+        # ====================================================================
+        
         data = request.get_json()
+        print(f"[DEBUG] Incoming JSON: {data}")
         
         if data is None:
+            print("[ERROR] No JSON received!")
             return jsonify({"error": "Request body must be JSON"}), 400
         
-        # Validate all required features are present
-        missing_features = [f for f in EXPECTED_FEATURES if f not in data]
-        if missing_features:
-            return jsonify({
-                "error": f"Missing required features: {missing_features}"
-            }), 400
+        # ====================================================================
+        # VALIDATE REQUIRED FIELDS
+        # ====================================================================
         
-        # Extract features in the correct order
-        features = np.array([[
-            data['Rainfall'],
-            data['Elevation'],
-            data['Slope'],
-            data['distance'],
-            data['Latitude'],
-            data['Longitude']
-        ]])
+        missing_fields = [f for f in EXPECTED_FEATURES if f not in data]
         
-        # Make prediction
-        prediction = model.predict(features)[0]  # 0 or 1
-        probability = model.predict_proba(features)[0]  # [prob_class_0, prob_class_1]
+        if missing_fields:
+            print(f"[ERROR] Missing fields: {missing_fields}")
+            return jsonify({"error": f"Missing fields: {missing_fields}"}), 400
         
-        # Return result
-        # If prediction is 1 (prone), return probability of class 1
-        # If prediction is 0 (not prone), return probability of class 0
-        result_probability = float(probability[int(prediction)])
+        print(f"[DEBUG] All required fields present ✓")
         
-        return jsonify({
+        # ====================================================================
+        # CONVERT TO NUMPY ARRAY (IN CORRECT ORDER)
+        # ====================================================================
+        
+        features_list = [
+            float(data['Rainfall']),
+            float(data['Elevation']),
+            float(data['Slope']),
+            float(data['distance']),
+            float(data['Latitude']),
+            float(data['Longitude'])
+        ]
+        
+        print(f"[DEBUG] Feature values: {features_list}")
+        
+        features_array = np.array([features_list])
+        print(f"[DEBUG] Feature array shape: {features_array.shape}")
+        
+        # ====================================================================
+        # MAKE PREDICTION
+        # ====================================================================
+        
+        print("[DEBUG] Running model.predict()...")
+        prediction = model.predict(features_array)[0]
+        
+        print("[DEBUG] Running model.predict_proba()...")
+        probabilities = model.predict_proba(features_array)[0]
+        
+        print(f"[DEBUG] Prediction: {prediction}")
+        print(f"[DEBUG] Probabilities: {probabilities}")
+        
+        # ====================================================================
+        # PREPARE RESPONSE
+        # ====================================================================
+        
+        response = {
             "prediction": int(prediction),
-            "probability": result_probability,
-            "probabilities": {
-                "not_prone": float(probability[0]),
-                "prone": float(probability[1])
-            }
-        }), 200
+            "probability": float(probabilities[int(prediction)])
+        }
+        
+        print(f"[SUCCESS] Response: {response}")
+        print("-"*80 + "\n")
+        
+        return jsonify(response), 200
     
-    except KeyError as e:
-        return jsonify({"error": f"Invalid feature: {str(e)}"}), 400
-    
-    except (ValueError, TypeError) as e:
-        return jsonify({"error": f"Feature values must be numeric: {str(e)}"}), 400
+    except ValueError as e:
+        error_msg = f"Feature values must be numeric: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        print("-"*80 + "\n")
+        return jsonify({"error": error_msg}), 400
     
     except Exception as e:
-        return jsonify({"error": f"Prediction error: {str(e)}"}), 500
+        error_msg = f"Prediction error: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        print("-"*80 + "\n")
+        return jsonify({"error": error_msg}), 500
 
 
-@app.route('/health', methods=['GET'])
-def health():
+# ============================================================================
+# GLOBAL ERROR HANDLER
+# ============================================================================
+
+@app.errorhandler(Exception)
+def handle_exception(e):
     """
-    Health check endpoint to verify backend is running.
+    Catch-all error handler for unhandled exceptions
     """
-    return jsonify({
-        "status": "healthy",
-        "model_loaded": model is not None,
-        "expected_features": EXPECTED_FEATURES
-    }), 200
+    error_msg = str(e)
+    print(f"[ERROR] Unhandled exception occurred: {error_msg}")
+    return jsonify({"error": error_msg}), 500
 
 
-@app.route('/', methods=['GET'])
-def index():
-    """
-    Root endpoint with API information.
-    """
-    return jsonify({
-        "service": "RiverTwin AI - Flood Vulnerability Prediction API",
-        "version": "1.0.0",
-        "endpoints": {
-            "POST /predict": "Make flood vulnerability prediction",
-            "GET /health": "Check backend health status"
-        },
-        "features_required": EXPECTED_FEATURES
-    }), 200
+# ============================================================================
+# MAIN - RUN SERVER
+# ============================================================================
 
-
-if __name__ == '__main__':
-    # Run Flask app on port 5000 with debug mode
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    print("="*80)
+    print("STARTING FLASK SERVER")
+    print("="*80)
+    print("\nServer running at: http://127.0.0.1:5000")
+    print("Debug mode: ON\n")
+    
+    # Run on localhost:5000 with debug enabled
+    app.run(host="127.0.0.1", port=5000, debug=True)
