@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { motion, useSpring } from 'framer-motion'
 
-export default function RiskPanel({ riskScore = 0 }) {
+export default function RiskPanel({ riskScore = 0, prediction = null, probability = null }) {
   const radius = 48
   const stroke = 10
-  const normalized = Math.max(0, Math.min(100, riskScore)) / 100
+
+  // Use prediction-based score if available, otherwise use global risk score
+  const displayScore =
+    prediction !== null ? Math.round(probability * 100) : riskScore
+  const normalized = Math.max(0, Math.min(100, displayScore)) / 100
   const circumference = 2 * Math.PI * radius
   const [display, setDisplay] = useState(0)
   const progressRef = useRef(0)
@@ -12,7 +16,7 @@ export default function RiskPanel({ riskScore = 0 }) {
   // Animate numeric counter smoothly
   useEffect(() => {
     const start = progressRef.current || 0
-    const end = riskScore
+    const end = displayScore
     const duration = 700
     const startTime = performance.now()
     let raf = null
@@ -27,18 +31,20 @@ export default function RiskPanel({ riskScore = 0 }) {
 
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [riskScore])
+  }, [displayScore])
 
   const dashOffset = circumference * (1 - normalized)
 
   // choose color based on thresholds (use strict theme)
   let color = 'var(--low)'
-  if (riskScore >= 70) color = 'var(--high)'
-  else if (riskScore >= 40) color = 'var(--med)'
+  if (displayScore >= 70) color = 'var(--high)'
+  else if (displayScore >= 40) color = 'var(--med)'
 
   return (
     <div className="panel risk-panel">
-      <h3 style={{color:'var(--text)'}}>Flood Risk</h3>
+      <h3 style={{ color: 'var(--text)' }}>
+        {prediction !== null ? 'ML Flood Risk' : 'Flood Risk'}
+      </h3>
       <div className="risk-meter">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <defs>
@@ -51,7 +57,12 @@ export default function RiskPanel({ riskScore = 0 }) {
             </filter>
           </defs>
           <g transform="translate(60,60)">
-            <circle r={radius} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={stroke} />
+            <circle
+              r={radius}
+              fill="none"
+              stroke="rgba(255,255,255,0.04)"
+              strokeWidth={stroke}
+            />
             <motion.circle
               r={radius}
               fill="none"
@@ -64,12 +75,37 @@ export default function RiskPanel({ riskScore = 0 }) {
               style={{ filter: 'url(#glow)' }}
               transform="rotate(-90)"
             />
-            <text x="0" y="6" textAnchor="middle" className="risk-number" style={{fill:'var(--text)'}}>
+            <text
+              x="0"
+              y="6"
+              textAnchor="middle"
+              className="risk-number"
+              style={{ fill: 'var(--text)' }}
+            >
               {display}%
             </text>
           </g>
         </svg>
       </div>
+
+      {/* Show prediction status */}
+      {prediction !== null && (
+        <div
+          style={{
+            marginTop: '12px',
+            paddingTop: '12px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            fontSize: '12px',
+            textAlign: 'center',
+            color:
+              prediction === 1
+                ? 'var(--high)'
+                : 'var(--low)'
+          }}
+        >
+          {prediction === 1 ? '⚠️ HIGH RISK ZONE' : '✓ LOW RISK ZONE'}
+        </div>
+      )}
     </div>
   )
 }

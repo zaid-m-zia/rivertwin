@@ -1,10 +1,20 @@
 import React, { useEffect, useRef } from 'react'
 
-export default function CesiumViewer({ rainfall, riskScore, showTerrain, showFloodZones }) {
+export default function CesiumViewer({
+  rainfall,
+  riskScore,
+  showTerrain,
+  showFloodZones,
+  prediction,
+  probability,
+  selectedLocation,
+  onLocationSelect
+}) {
   const containerRef = useRef(null)
   const viewerRef = useRef(null)
   const cesiumRef = useRef(null)
   const floodLayerRef = useRef(null)
+  const predictionCircleRef = useRef(null)
 
   // Initialize Cesium viewer once
   useEffect(() => {
@@ -53,6 +63,36 @@ export default function CesiumViewer({ rainfall, riskScore, showTerrain, showFlo
           })
           floodLayerRef.current = rect
         }
+
+        // ====================================================================
+        // MAP CLICK HANDLER - Capture coordinates
+        // ====================================================================
+        viewer.screenSpaceEventHandler.setInputAction((click) => {
+          const pickedObject = viewer.scene.pick(click.position)
+
+          if (Cesium.defined(pickedObject)) {
+            // User clicked on an entity; just log it
+            console.log('[Cesium] Clicked entity:', pickedObject.id)
+          }
+
+          // Get coordinates at mouse position
+          const cartesian = viewer.scene.pickPosition(click.position)
+          if (Cesium.defined(cartesian)) {
+            const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
+            const latitude = Cesium.Math.toDegrees(cartographic.latitude)
+            const longitude = Cesium.Math.toDegrees(cartographic.longitude)
+
+            console.log('[Cesium] Map click - Lat:', latitude, 'Lon:', longitude)
+
+            // Send coordinates to parent component
+            if (onLocationSelect) {
+              onLocationSelect({
+                lat: latitude,
+                lon: longitude
+              })
+            }
+          }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Cesium init error', e)
@@ -69,6 +109,7 @@ export default function CesiumViewer({ rainfall, riskScore, showTerrain, showFlo
       }
       cesiumRef.current = null
       floodLayerRef.current = null
+      predictionCircleRef.current = null
     }
   }, [])
 
@@ -125,6 +166,40 @@ export default function CesiumViewer({ rainfall, riskScore, showTerrain, showFlo
       }
     }
   }, [showFloodZones])
+
+  // Update prediction overlay circle when prediction or location changes
+  useEffect(() => {
+    const Cesium = cesiumRef.current
+    const viewer = viewerRef.current
+    if (!Cesium || !viewer) return
+
+    // Remove old prediction circle if exists
+    if (predictionCircleRef.current) {
+      viewer.entities.remove(predictionCircleRef.current)
+      predictionCircleRef.current = null
+    }
+
+    // Add new prediction circle if we have a location and prediction
+    if (selectedLocation && prediction !== null) {
+      const circleColor =
+        prediction === 1
+          ? Cesium.Color.RED.withAlpha(0.5)
+          : Cesium.Color.GREEN.withAlpha(0.5)
+
+      const circle = viewer.entities.add({
+        id: 'prediction-circle',
+        position: Cesium.Cartesian3.fromDegrees(selectedLocation.lon, selectedLocation.lat),
+        ellipse: {
+          semiMinorAxis: 500,
+          semiMajorAxis: 500,
+          material: circleColor
+        }
+      })
+
+      predictionCircleRef.current = circle
+      console.log('[Cesium] Added prediction circle:', prediction === 1 ? 'HIGH RISK' : 'LOW RISK')
+    }
+  }, [selectedLocation, prediction])
 
   // Hook for future dynamic updates driven by rainfall or riskScore
   useEffect(() => {
